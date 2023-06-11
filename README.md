@@ -7,6 +7,8 @@ We can use the routines provided by ImageHlp.h and dbghelp.h to write over the n
 
 The screencap following shows what it looks like to modify a function name at runtime: certain tools will be fooled, and this can perhaps be used in malware/evasion. We can see that the disassembler thinks MessageBoxA is located at both 0x7FFBE37B90D0 and 0x7FFBE37B9750.  
 
+This technique also happens to break certain debuggers! Cheat engine's VEH debugger will fail to load after claiming it can't find symbols in ole32.dll (such as MessageBoxW in our example).  
+
 ![Alt text](MessageBoxA_Duplicate.PNG?raw=true "Two Addresses for MessageBoxA")   
 ![Alt text](MyQueryObject.PNG?raw=true "MyQueryObject vs. NtQueryObject")  
 
