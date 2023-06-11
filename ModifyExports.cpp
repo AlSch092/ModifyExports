@@ -71,9 +71,12 @@ bool ModifyDLLExportName(string dllName, string functionName, string newName)
 }
 
 
+
 int main(void)
 {
-	HMODULE user32 = GetModuleHandleW(L"USER32");
+	LoadLibrary(L"USER32.dll");
+
+	HMODULE user32 = GetModuleHandleW(L"USER32.dll");
 
 	if (!user32)
 	{
@@ -90,17 +93,17 @@ int main(void)
 
 	printf("MessageBoxW: %llX\n", (UINT64)MsgBoxW);
 
-	ModifyDLLExportName("USER32.DLL", "MessageBoxW", "MessageBoxA"); //now we have two MessageBoxA symbols
-
-	HMODULE program = GetModuleHandleW(L"USER32");
+	ModifyDLLExportName("USER32.DLL", "MessageBoxW", "MessageBoxX"); //now we have two MessageBoxW symbols
+	
+	HMODULE program = GetModuleHandleW(L"USER32.dll");
 
 	if (program)
 	{
-		UINT64 addr_W = (UINT64)GetProcAddress(program, "MessageBoxW"); //we call GetProcAddress again, which now returns 0
-		UINT64 addr_A = (UINT64)GetProcAddress(program, "MessageBoxA");
-
+		UINT64 addr_W = (UINT64)GetProcAddress(program, "MessageBoxX"); //we call GetProcAddress again, which now returns 0
 		printf("New MessageBoxW: %llX\n", addr_W);
 	}
+
+	system("pause");
 
 	return 0;
 }
