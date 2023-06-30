@@ -70,10 +70,21 @@ bool ModifyDLLExportName(string dllName, string functionName, string newName)
 	return true;
 }
 
+//Added on June 29 2023
+void StopDLLInjection() //prevents DLL injection from any tools that make use of 'LoadLibrary' in the host process. We can expand this idea to break many other functionalities of tools.
+{
+	LoadLibrary(L"KERNEL32.dll");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryA", "1");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryW", "2");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExA", "3");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExW", "4");
+}
 
 
 int main(void)
 {
+	StopDLLInjection();
+	
 	LoadLibrary(L"USER32.dll");
 
 	HMODULE user32 = GetModuleHandleW(L"USER32.dll");
@@ -102,8 +113,6 @@ int main(void)
 		UINT64 addr_W = (UINT64)GetProcAddress(program, "MessageBoxX"); //we call GetProcAddress again, which now returns 0
 		printf("New MessageBoxW: %llX\n", addr_W);
 	}
-
-	system("pause");
 
 	return 0;
 }
