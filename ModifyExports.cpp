@@ -70,21 +70,25 @@ bool ModifyDLLExportName(string dllName, string functionName, string newName)
 	return true;
 }
 
-//Added on June 29 2023
-void StopDLLInjection() //prevents DLL injection from any tools that make use of 'LoadLibrary' in the host process. We can expand this idea to break many other functionalities of tools.
+//prevents DLL injection from any code that makes use of 'LoadLibrary' in the host process. We can expand this idea to break many other functionalities of tools.
+//remember that making undocumented changes can decrease the stability of your program, always make sure the tradeoff is worth it
+//one downside is that LoadLibrary will likely have the same address across different processes on the same machine.. but regardless, new modules wont be able to load
+void StopDLLInjection()
 {
-	LoadLibrary(L"KERNEL32.dll");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryA", "1");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryW", "2");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExA", "3");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExW", "4");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryA", ""); //KERNEL32.LoadLibraryA jumps to KERNELBASE.LoadLibraryA, so we should write over both of them
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryW", "");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExA", "");
+	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExW", "");
+
+	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryA", ""); //most injectors will write the DLL name into a target process then call createRemoteThread with LoadLibrary's address
+	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryW", "");
+	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryExA", "");
+	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryExW", "");
 }
 
 
 int main(void)
 {
-	StopDLLInjection();
-	
 	LoadLibrary(L"USER32.dll");
 
 	HMODULE user32 = GetModuleHandleW(L"USER32.dll");
@@ -105,7 +109,7 @@ int main(void)
 	printf("MessageBoxW: %llX\n", (UINT64)MsgBoxW);
 
 	ModifyDLLExportName("USER32.DLL", "MessageBoxW", "MessageBoxX"); //now we have two MessageBoxW symbols
-	
+
 	HMODULE program = GetModuleHandleW(L"USER32.dll");
 
 	if (program)
@@ -114,5 +118,8 @@ int main(void)
 		printf("New MessageBoxW: %llX\n", addr_W);
 	}
 
+	StopDLLInjection();
+
 	return 0;
 }
+
