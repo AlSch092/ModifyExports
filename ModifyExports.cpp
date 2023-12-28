@@ -1,6 +1,7 @@
 ﻿/*
 ModifyExports.cpp
 Alsch092 @ github
+Last updated: Dec 28 2023
 */
 
 #include <iostream>
@@ -11,7 +12,19 @@ Alsch092 @ github
 
 using namespace std;
 
-bool ModifyDLLExportName(string dllName, string functionName, string newName)
+void StopDLLInjection();
+
+void __declspec(dllexport) FunctionExportA()
+{
+	MessageBoxA(0, "Hello from A!", 0, 0);
+}
+
+void __declspec(dllexport) FunctionExportB()
+{
+	MessageBoxA(0, "Hello from B!", 0, 0);
+}
+
+bool ModifyExportName(string dllName, string functionName, string newName)
 {
 	DWORD* dNameRVAs(0); //addresses of export names
 	_IMAGE_EXPORT_DIRECTORY* ImageExportDirectory;
@@ -70,56 +83,36 @@ bool ModifyDLLExportName(string dllName, string functionName, string newName)
 	return true;
 }
 
-//prevents DLL injection from any code that makes use of 'LoadLibrary' in the host process. We can expand this idea to break many other functionalities of tools.
-//remember that making undocumented changes can decrease the stability of your program, always make sure the tradeoff is worth it
-//one downside is that LoadLibrary will likely have the same address across different processes on the same machine.. but regardless, new modules wont be able to load
-void StopDLLInjection()
-{
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryA", ""); //KERNEL32.LoadLibraryA jumps to KERNELBASE.LoadLibraryA, so we should write over both of them
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryW", "");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExA", "");
-	ModifyDLLExportName("KERNEL32.DLL", "LoadLibraryExW", "");
-
-	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryA", ""); //most injectors will write the DLL name into a target process then call createRemoteThread with LoadLibrary's address
-	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryW", "");
-	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryExA", "");
-	ModifyDLLExportName("KERNELBASE.DLL", "LoadLibraryExW", "");
-}
-
-
 int main(void)
 {
-	LoadLibrary(L"USER32.dll");
+	ModifyExportName("ModifyExports.exe", "FunctionExportA", "FunctionExportB"); //after this call there will be two `FunctionExportB` exports
+	ModifyExportName("ModifyExports.exe", "FunctionExportB", "FunctionExportC"); //and after this call, there will be FunctionExportB and FunctionExportC
+	
+	HMODULE image = GetModuleHandleW(NULL);
 
-	HMODULE user32 = GetModuleHandleW(L"USER32.dll");
+	UINT64 addr_A = (UINT64)GetProcAddress(image, "FunctionExportB"); //example of how we can control code flow through modifying export names: 
+	UINT64 addr_B = (UINT64)GetProcAddress(image, "FunctionExportC"); //   -> If some DLL exports "CalledFunctionA" , we can change th
+	
+	UINT64 old_A = (UINT64)GetProcAddress(image, "FunctionExportA");
 
-	if (!user32)
-	{
-		printf("Could not find user32.dll: %d\n", GetLastError());
-		return 0;
-	}
-
-	UINT64 MsgBoxW = (UINT64)GetProcAddress(user32, "MessageBoxW");
-
-	if (MsgBoxW == NULL) {
-		printf("GetProcAddress failed!\n");
-		return 0;
-	}
-
-	printf("MessageBoxW: %llX\n", (UINT64)MsgBoxW);
-
-	ModifyDLLExportName("USER32.DLL", "MessageBoxW", "MessageBoxX"); //now we have two MessageBoxW symbols
-
-	HMODULE program = GetModuleHandleW(L"USER32.dll");
-
-	if (program)
-	{
-		UINT64 addr_W = (UINT64)GetProcAddress(program, "MessageBoxX"); //we call GetProcAddress again, which now returns 0
-		printf("New MessageBoxW: %llX\n", addr_W);
-	}
+	printf("Addr (A): %llX\n", addr_A); //addresses will be updated properly. FunctionExportB is now the address of FunctionExportA
+	printf("Addr (B): %llX\n", addr_B); //.. and FunctionExportC is the address of FunctionExportB
+	printf("Addr (old A): %llX\n", old_A); //this will return 0, which shows an example of denying availability of an export
 
 	StopDLLInjection();
-
 	return 0;
+}
+
+void StopDLLInjection() //prevents DLL injection from any tools that make use of 'LoadLibrary' in the host process. We can expand this idea to break many other functionalities of tools.
+{
+	ModifyExportName("KERNEL32.DLL", "LoadLibraryA", ""); //KERNEL32.LoadLibraryA jumps to KERNELBASE.LoadLibraryA, so we should write over both of them
+	ModifyExportName("KERNEL32.DLL", "LoadLibraryW", "");
+	ModifyExportName("KERNEL32.DLL", "LoadLibraryExA", "");
+	ModifyExportName("KERNEL32.DLL", "LoadLibraryExW", "");
+
+	ModifyExportName("KERNELBASE.DLL", "LoadLibraryA", ""); //most injectors will write the DLL name into a target process then call createRemoteThread with LoadLibrary's address
+	ModifyExportName("KERNELBASE.DLL", "LoadLibraryW", "");
+	ModifyExportName("KERNELBASE.DLL", "LoadLibraryExA", "");
+	ModifyExportName("KERNELBASE.DLL", "LoadLibraryExW", "");
 }
 
