@@ -1,5 +1,5 @@
 ## ModifyExports
-Proof-of-concept written in C for modifying export table names at runtime. This technique can be seen as "invasive" because it can pop up error messages to the end user, and can interrupt normal program flow. This technique can also potentially be leveraged by malware to redirect program flow.
+Proof-of-concept written in C for modifying the current process' export table names at runtime. This technique can be seen as "invasive" because it can sometimes pop up error messages to the end user, and can interrupt normal program flow due to `GetProcAddress` returning atypical results. This technique can also potentially be leveraged by malware to redirect program flow.
 
 # How it works:  
 
