@@ -1,5 +1,5 @@
 ## ModifyExports
-Proof-of-concept written in C for modifying export table names at runtime (anti-dll injection method)
+Proof-of-concept written in C for modifying export table names at runtime. This technique can be seen as "invasive" because it can pop up error messages to the end user, and can interrupt normal program flow. This technique can also potentially be leveraged by malware to redirect program flow.
 
 # How it works:  
 
@@ -10,7 +10,7 @@ Additionally, we can stop DLL injection by many tools such as Cheat Engine by wr
 # Screenshot examples:
 The screencap following shows what it looks like to modify a function name at runtime: certain tools will be fooled We can see that the disassembler thinks MessageBoxA is located at both 0x7FFBE37B90D0 and 0x7FFBE37B9750. 
 The second screencap shows renaming "NtQueryObject" to "MyQueryObject".
-The third screencap shows an example of stopping DLL Injection through the use of this technique.
+The third screencap shows an example of stopping DLL Injection through the use of this technique (invasive to the end user).
 
 ![Alt text](MessageBoxA_Duplicate.PNG?raw=true "Two Addresses for MessageBoxA")   
 ![Alt text](MyQueryObject.PNG?raw=true "MyQueryObject vs. NtQueryObject")  
